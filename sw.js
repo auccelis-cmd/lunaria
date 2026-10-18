@@ -1,5 +1,5 @@
 // 改了任何檔案後，把版本號 +1（v3、v4…），手機才會抓到新版
-const CACHE = 'lunaria-v3';
+const CACHE = 'lunaria-v4';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 const CDN = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))); self.skipWaiting(); });

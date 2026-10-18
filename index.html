@@ -118,6 +118,33 @@ textarea{width:100%;box-sizing:border-box;margin-top:8px;min-height:72px;resize:
 .cell.per .d{background:var(--c-men);color:#fff}
 .cell.pre .d{background:color-mix(in oklab,var(--c-pre) 22%,transparent);color:var(--fg);border:1.5px dashed var(--c-pre)}
 .cell.ovu .d{background:color-mix(in oklab,var(--c-ovu) 16%,transparent)}
+.cell.ovd .d{background:var(--c-ovu);color:#fff;font-weight:500}
+.wd.ovd .d{border:1.5px solid #fff}
+.mini span.ovd{background:var(--c-ovu);color:#fff}
+.today-btn{background:#fff;color:var(--ph);border-radius:999px;padding:4px 11px;font-size:.78rem;font-weight:700;white-space:nowrap}
+.meta-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.eyebrow-btn{display:inline-flex;align-items:center;gap:6px;color:inherit;padding:0}
+.eyebrow-btn .q{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;border:1px solid rgba(255,255,255,.7);font-size:.65rem;letter-spacing:0}
+.sheet{max-height:82vh;overflow-y:auto}
+.phase-list{display:flex;flex-direction:column;gap:12px;margin-top:6px}
+.ph{border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.ph.cur{border-color:var(--ph);box-shadow:inset 3px 0 0 var(--ph)}
+.ph h4{margin:0 0 4px;font-size:.95rem;display:flex;align-items:center;gap:8px}
+.ph h4 i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.ph h4 small{font-weight:400;color:var(--muted);font-size:.75rem}
+.ph p{margin:0;font-size:.85rem;color:var(--fg);line-height:1.65}
+.ph .feel{color:var(--muted);margin-top:4px}
+.fine{font-size:.75rem;color:var(--muted);margin:12px 0 0;line-height:1.6}
+.sheet-close{display:block;width:100%;margin-top:14px;border:1.5px solid var(--line);border-radius:14px;padding:10px;font-weight:700}
+.sec-title{margin:6px 0 0;font-family:var(--f-display);font-size:1.1rem;display:flex;justify-content:space-between;align-items:baseline}
+.stats4{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat .hint2{font-size:.72rem;color:var(--muted)}
+.recent .row{cursor:default}
+.recent .k2{display:flex;flex-direction:column;gap:2px}
+.recent .k2 small{color:var(--muted);font-size:.75rem}
+.recent .len{text-align:right;font-family:var(--f-num);font-size:1.3rem;line-height:1.1}
+.recent .len small{display:block;font-family:var(--f-body);font-size:.7rem;color:var(--muted)}
+.recent .len small.warn{color:var(--c-late)}
 .cell.today .d{box-shadow:0 0 0 2px var(--fg)}
 .cell.sel .d{outline:2px solid var(--ph);outline-offset:2px}
 .cell .dot{width:4px;height:4px;border-radius:50%;background:var(--muted);opacity:0}
@@ -239,7 +266,7 @@ const UI={view:'today',sel:TODAY,cursor:TODAY.slice(0,7),sheet:null,sheetP:false
 const SYNC={user:null,status:'',bad:false,err:'',msg:'',link:null,partner:null,invite:null,lastPull:0};
 const SHARE=[['phase','週期階段與預測'],['flow','月經量'],['intimacy','親密關係（對方也能記錄）'],['details','分泌物、其他出血、備註']];
 const TIPS={men:'熱飲、暖暖包、多分擔一點家事，都會很有幫助。',fol:'精神通常比較好，適合安排約會或出遊。',
-  ovu:'若有避孕需求，這幾天要特別留意。',lut:'可能比較容易累或情緒起伏，多一點耐心和陪伴。',
+  ovu:'易孕期約 7 天（排卵日前 5 天到排卵後 1 天）。若有避孕需求，這幾天要特別留意。',lut:'可能比較容易累或情緒起伏，多一點耐心和陪伴。',
   pre:'可以先備好常用的生理用品和暖暖包。',late:'對方可能會有點在意，溫和地關心就好。',none:'對方還沒有週期紀錄。'};
 
 // ---------- 同步 ----------
@@ -338,14 +365,16 @@ function info(date){
     if(date>TODAY){const k=Math.floor((d-1)/L);base=add(s,k*L);d-=k*L;predicted=true}
     else return{key:'late',label:'經期延遲',n:d-L,sub:`預計 ${md(add(s,L))} 開始 · 週期第 ${d} 天`,d,p:.99};
   }
-  const tail=predicted?`預測 · 週期第 ${d} 天`:`上次經期 ${md(s)} 開始 · 週期第 ${d} 天`;
+  const ovDate=add(base,ov-1),ws=Math.max(P+1,ov-5),we=ov+1;
+  const ovTxt=d<ov?`排卵日 ${md(ovDate)}`:d===ov?'今天是排卵日':`排卵日 ${md(ovDate)} 已過`;
+  const tail=`${predicted?'預測':'上次經期 '+md(s)+' 開始'} · 週期第 ${d} 天`;
   let r;
   if(d<=P)r=predicted?{key:'pre',label:'預計經期',n:d,sub:`${md(base)} – ${md(add(base,P-1))}`}
                      :{key:'men',label:'生理期',n:d,sub:`本次經期 ${md(s)} 開始`};
-  else if(d<ov-1)r={key:'fol',label:'濾泡期',n:d-P,sub:tail};
-  else if(d<=ov+1)r={key:'ovu',label:'排卵期',n:d-(ov-2),sub:tail};
-  else r={key:'lut',label:'黃體期',n:d-(ov+1),sub:tail};
-  return{...r,d,p:(d-1)/L,predicted};
+  else if(d<ws)r={key:'fol',label:'濾泡期',n:d-P,sub:`${tail}\n${ovTxt}`};
+  else if(d<=we)r={key:'ovu',label:d===ov?'排卵日 · 易孕期':'易孕期',n:d-ws+1,sub:`${tail}\n${ovTxt}`};
+  else r={key:'lut',label:'黃體期',n:d-we,sub:`${tail}\n${ovTxt}`};
+  return{...r,d,p:(d-1)/L,predicted,isOv:d===ov,ovDate};
 }
 function isPeriod(date){
   const f=S.logs[date]?.flow;if(f&&f!=='無')return true;
@@ -354,7 +383,7 @@ function isPeriod(date){
 function dayClass(date){
   const c=[];
   if(isPeriod(date))c.push('per');
-  else{const i=info(date);if(i.key==='pre')c.push('pre');else if(i.key==='ovu')c.push('ovu')}
+  else{const i=info(date);if(i.key==='pre')c.push('pre');else if(i.key==='ovu')c.push('ovu');if(i.isOv)c.push('ovd')}
   if(date===TODAY)c.push('today');
   if(date===UI.sel)c.push('sel');
   const l=S.logs[date];if(l&&Object.values(l).some(v=>v&&v!=='無'))c.push('has');
@@ -441,9 +470,9 @@ function hero(){
   const days=[];for(let k=-3;k<=3;k++){const x=add(UI.sel,k);days.push(x)}
   return `<section class="hero" aria-label="週期狀態">
     <div class="hero-main">${moonSVG(i.p)}
-      <div class="hero-text"><p class="eyebrow">${i.label}</p>
-        <p class="big">${i.n!=null?`第<b>${i.n}</b>天`:'—'}</p><p class="sub">${esc(i.sub)}</p></div></div>
-    <div class="hero-meta"><span class="num">${d.getMonth()+1}月${d.getDate()}日 週${WK[d.getDay()]}${UI.sel===TODAY?' · 今天':''}</span>${chip?`<span class="chip">${chip}</span>`:''}</div>
+      <div class="hero-text"><p class="eyebrow"><button class="eyebrow-btn" data-act="phases" aria-label="週期階段說明">${i.label}<span class="q">?</span></button></p>
+        <p class="big">${i.n!=null?`第<b>${i.n}</b>天`:'—'}</p><p class="sub">${esc(i.sub).replace(/\n/g,'<br>')}</p></div></div>
+    <div class="hero-meta"><span class="meta-left"><span class="num">${d.getMonth()+1}月${d.getDate()}日 週${WK[d.getDay()]}${UI.sel===TODAY?' · 今天':''}</span>${UI.sel!==TODAY?'<button class="today-btn" data-act="today">回到今天</button>':''}</span>${chip?`<span class="chip">${chip}</span>`:''}</div>
     ${S.blocks.week?`<svg class="wave" viewBox="0 0 400 26" preserveAspectRatio="none" aria-hidden="true"><path d="M0 14C50 2 100 26 150 14S250 2 300 14 380 22 400 12" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5"/></svg>
     <div class="week"><button class="arrow" data-act="shift" data-n="-7" aria-label="上一週">‹</button>
       ${days.map(x=>{const dd=parse(x);return `<button class="wd ${dayClass(x)}" data-act="sel" data-d="${x}" aria-label="${md(x)}"><span class="w">${WK[dd.getDay()]}</span><span class="d">${dd.getDate()}</span><span class="dot"></span></button>`}).join('')}
@@ -473,20 +502,56 @@ function month(){
   let cells='';for(let i=0;i<first.getDay();i++)cells+='<span></span>';
   for(let i=1;i<=n;i++){const x=`${y}-${pad(m)}-${pad(i)}`;cells+=`<button class="cell ${dayClass(x)}" data-act="sel" data-d="${x}" aria-label="${m}月${i}日"><span class="d">${i}</span><span class="dot"></span></button>`}
   return `<section class="panel"><div class="mhead"><button data-act="mshift" data-n="-1" aria-label="上個月">‹</button><h2 class="num">${y}年 ${m}月</h2><button data-act="mshift" data-n="1" aria-label="下個月">›</button></div>
+    ${(UI.cursor!==TODAY.slice(0,7)||UI.sel!==TODAY)?'<div style="display:flex;justify-content:center;margin:-4px 0 6px"><button class="opt" data-act="today">回到今天</button></div>':''}
     <div class="grid">${[...WK].map(w=>`<span class="h">${w}</span>`).join('')}${cells}</div>
-    <div class="legend"><span><i style="background:var(--c-men)"></i>經期</span><span><i style="border:1.5px dashed var(--c-pre)"></i>預計經期</span><span><i style="background:color-mix(in oklab,var(--c-ovu) 30%,transparent)"></i>排卵期</span><span><i style="background:var(--muted);width:5px;height:5px"></i>有紀錄</span><span><i style="background:var(--c-ovu);width:7px;height:7px"></i>親密關係</span></div></section>
+    <div class="legend"><span><i style="background:var(--c-men)"></i>經期</span><span><i style="border:1.5px dashed var(--c-pre)"></i>預計經期</span><span><i style="background:color-mix(in oklab,var(--c-ovu) 30%,transparent)"></i>易孕期</span><span><i style="background:var(--c-ovu)"></i>排卵日</span><button class="opt" data-act="phases" style="padding:2px 10px;font-size:.75rem">階段說明</button><span><i style="background:var(--muted);width:5px;height:5px"></i>有紀錄</span><span><i style="background:var(--c-ovu);width:7px;height:7px"></i>親密關係</span></div></section>
     ${detail()}`;
+}
+function rhythm(){
+  const L=cycleLen(),st=sorted(),ls=lastStartOn(TODAY);
+  if(!ls)return `<div class="empty">記錄第一次經期後，這裡會出現週期節奏。</div>`;
+  const next=add(ls,L),nd=diff(next,TODAY),ti=info(TODAY),ovD=ti.ovDate||add(ls,L-15),od=diff(ovD,TODAY);
+  const gaps=[];for(let k=1;k<st.length;k++){const g=diff(st[k],st[k-1]);if(g>=20&&g<=45)gaps.push(g)}
+  const n=Math.min(6,gaps.length);
+  const tiles=`<h2 class="sec-title">節奏</h2><div class="stats4">
+    <div class="stat"><div class="n">${L}<small>天</small></div><div class="k">平均週期長度</div><div class="hint2">${n?`依最近 ${n} 次`:S.cycleMode==='manual'?'手動設定':'預設值'}</div></div>
+    <div class="stat"><div class="n">${S.periodLen}<small>天</small></div><div class="k">經期天數</div><div class="hint2">在設定中調整</div></div>
+    <div class="stat"><div class="n">${md(next)}</div><div class="k">下次月經</div><div class="hint2">${nd>0?`還有 ${nd} 天`:nd===0?'就是今天':`已延遲 ${-nd} 天`}</div></div>
+    <div class="stat"><div class="n">${md(ovD)}</div><div class="k">預測排卵日</div><div class="hint2">${od>0?`還有 ${od} 天`:od===0?'就是今天':`已過 ${-od} 天`}</div></div></div>`;
+  const rows=[];
+  for(let k=st.length-1;k>=0&&rows.length<6;k--){
+    const s0=st[k],nx=st[k+1],len=nx?diff(nx,s0):null,ov=add(s0,(len||L)-15);
+    let tag='進行中',warn=false;
+    if(len!=null){if(Math.abs(len-L)<=3)tag='如常';else{tag=len>L?'偏長':'偏短';warn=true}}
+    rows.push(`<div class="row"><span class="k2"><span class="k num">${md(s0)} — ${md(add(s0,S.periodLen-1))}</span><small>經期 ${S.periodLen} 天 · 排卵日 ${md(ov)}${nx?'':'（預測）'}</small></span>
+      <span class="len">${len!=null?`${len}<small class="${warn?'warn':''}">天 · ${tag}</small>`:`<small>${tag}</small>`}</span></div>`);
+  }
+  return tiles+(rows.length?`<h2 class="sec-title">近期</h2><section class="panel recent">${rows.join('')}</section>`:'');
+}
+const PHASES=[
+  ['men','生理期','約第 1–5 天','子宮內膜剝落、隨經血排出。雌激素和黃體素都在低點。','容易疲倦、怕冷、下腹悶痛或腰痠，多休息、保暖。'],
+  ['fol','濾泡期','經期結束到易孕期前','卵巢裡的濾泡開始發育，雌激素逐漸上升，子宮內膜重新增厚。','精神、體力和心情通常是整個週期裡最好的時候。'],
+  ['ovu','易孕期與排卵日','排卵日前 5 天到排卵後 1 天，共約 7 天','排卵通常發生在下次月經前約 14 天。卵子排出後只能存活約 12–24 小時，但精子在體內最多可存活約 5 天，所以排卵前幾天同房也可能受孕。','分泌物可能變多、透明有彈性（蛋清狀），有些人會有單側下腹輕微抽痛。'],
+  ['lut','黃體期','排卵後到下次月經前，約 12–14 天','排卵後留下的黃體分泌黃體素，基礎體溫略為上升；如果沒有受孕，黃體萎縮，月經就會來。','後段可能出現經前症狀：水腫、胸脹、睡不好、情緒起伏、食慾變大。'],
+  ['pre','預計經期','依平均週期推算','根據你過去的週期長度往後推算的日期，記錄越多越準。','經期比預測晚幾天很常見；壓力、作息、生病都可能讓週期變動。']
+];
+function openPhases(){
+  const cur=(UI.view==='partner'&&SYNC.partner?.share?.phase)?withPartner(()=>info(UI.sel).key):info(UI.sel).key;
+  const sh=document.getElementById('sheet');
+  sh.innerHTML=`<h3 id="sheet-title">週期的四個階段</h3><p>月亮從新月到滿月再回到新月，身體也有自己的潮汐。</p>
+  <div class="phase-list">${PHASES.map(([k,t,when,what,feel])=>`<div class="ph ${k===cur?'cur':''}"><h4><i style="background:var(--c-${k})"></i>${t}<small>${when}</small></h4><p>${what}</p><p class="feel">${feel}</p></div>`).join('')}</div>
+  <p class="fine">以上是依平均週期推算的一般說明，每個人、每個月都可能不同。App 的排卵與易孕期預測只能參考，不能當作避孕方法；有避孕或備孕需求，建議搭配排卵試紙、基礎體溫，或諮詢婦產科醫師。</p>
+  <button class="sheet-close" data-act="close">知道了</button>`;
+  UI.sheet='phases';sh.hidden=false;document.getElementById('backdrop').hidden=false;sh.scrollTop=0;
 }
 function year(){
   const y=+UI.cursor.slice(0,4),L=cycleLen(),st=sorted();
   let html=`<div class="mhead"><button data-act="yshift" data-n="-1" aria-label="上一年">‹</button><h2 class="num">${y}年</h2><button data-act="yshift" data-n="1" aria-label="下一年">›</button></div>
-  <div class="stats"><div class="stat"><div class="k">平均週期</div><div class="n">${L}<small>天</small></div></div>
-    <div class="stat"><div class="k">經期天數</div><div class="n">${S.periodLen}<small>天</small></div></div>
-    <div class="stat"><div class="k">已記錄</div><div class="n">${st.length}<small>次</small></div></div></div><div class="years">`;
+  ${rhythm()}<h2 class="sec-title">月曆總覽</h2><div class="years">`;
   for(let m=1;m<=12;m++){
     const first=new Date(y,m-1,1),n=new Date(y,m,0).getDate();let c='';
     for(let i=0;i<first.getDay();i++)c+='<span></span>';
-    for(let i=1;i<=n;i++){const x=`${y}-${pad(m)}-${pad(i)}`;const cl=isPeriod(x)?'per':(x>TODAY&&info(x).key==='pre'?'pre':'');c+=`<span class="${cl} ${x===TODAY?'today':''}">${i}</span>`}
+    for(let i=1;i<=n;i++){const x=`${y}-${pad(m)}-${pad(i)}`;const ix=info(x),cl=isPeriod(x)?'per':(x>TODAY&&ix.key==='pre'?'pre':(ix.isOv?'ovd':''));c+=`<span class="${cl} ${x===TODAY?'today':''}">${i}</span>`}
     html+=`<button class="ym" data-act="gomonth" data-m="${y}-${pad(m)}"><h3>${m}月</h3><div class="mini">${c}</div></button>`;
   }
   return html+'</div>';
@@ -566,6 +631,8 @@ document.addEventListener('click',e=>{
     case'opt':if(UI.sheetP){const day=UI.sel;closeSheet();act(async()=>{const {error}=await sb.rpc('lunaria_partner_set_intimacy',{p_day:day,p_value:v==='無'?null:v});if(error)throw error;await loadLink()});return}
       setLog(UI.sheet,v);closeSheet();break;
     case'close':closeSheet();return;
+    case'phases':openPhases();return;
+    case'today':UI.sel=TODAY;UI.cursor=TODAY.slice(0,7);break;
     case'toggleStart':{const i=S.starts.indexOf(UI.sel);if(i>=0)S.starts.splice(i,1);else S.starts.push(UI.sel);save();dirtyStart(UI.sel);break}
     case'palette':S.palette=v;dirtyProfile();break;
     case'font':S.font=v;dirtyProfile();break;
