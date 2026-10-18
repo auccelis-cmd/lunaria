@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>月汐 Lunaria</title>
+<meta name="theme-color" content="#F5F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16131B" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="月汐">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*{-webkit-tap-highlight-color:transparent}img{max-width:100%}[hidden]{display:none!important}body{margin:0}</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.3/dist/umd/supabase.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one phone-width column. A tide-colored hero card whose color follows the cycle phase, a moon glyph that waxes across the cycle, then quick-log tiles and the day's detail. */
+:root{
+  --bg:#F5F2F7; --surface:#FFFFFF; --fg:#2B2531; --muted:#7B7284; --line:#E7E1EB; --soft:#EFEAF3;
+  --ph:#E0566F;
+  --c-men:#E0566F; --c-fol:#3B88C4; --c-ovu:#8466CC; --c-lut:#A87B1F; --c-pre:#E27D93; --c-late:#A9566A; --c-none:#8A8294;
+  --f-display:"LXGW WenKai TC","Noto Serif TC",serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-num:"DM Mono",ui-monospace,monospace;
+  --shadow:0 10px 30px -18px rgba(60,30,70,.45);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#16131B; --surface:#221E29; --fg:#F1ECF4; --muted:#A79FB0; --line:#352F3D; --soft:#2B2633;
+  --shadow:0 10px 30px -18px rgba(0,0,0,.8); color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#16131B; --surface:#221E29; --fg:#F1ECF4; --muted:#A79FB0; --line:#352F3D; --soft:#2B2633;
+  --shadow:0 10px 30px -18px rgba(0,0,0,.8); color-scheme:dark }
+html{font-size:15.5px}
+html.fs-s{font-size:14px} html.fs-l{font-size:17px}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:1rem;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 40px}
+.app{max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--ph);outline-offset:2px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--f-display);font-size:1.35rem;font-weight:700}
+.brand small{font-family:var(--f-body);font-size:.75rem;font-weight:500;color:var(--muted);letter-spacing:.08em}
+.icon-btn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:1px solid var(--line)}
+.icon-btn svg{width:20px;height:20px;stroke:var(--fg)}
+.tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px}
+.tabs button{flex:1;padding:7px 0;border-radius:999px;font-size:.88rem;font-weight:500;color:var(--muted)}
+.tabs button[aria-pressed="true"]{background:var(--ph);color:#fff}
+.sample{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.8rem;color:var(--muted);
+  background:var(--soft);border-radius:12px;padding:8px 12px}
+.sample button{color:var(--ph);font-weight:700;white-space:nowrap}
+
+/* hero */
+.hero{position:relative;border-radius:28px;color:#fff;overflow:hidden;box-shadow:var(--shadow);
+  background:radial-gradient(120% 90% at 85% 0%,color-mix(in oklab,var(--ph) 55%,#fff) 0%,var(--ph) 55%,color-mix(in oklab,var(--ph) 80%,#1a1020) 100%);
+  transition:background .5s}
+.hero-main{display:flex;align-items:center;gap:16px;padding:22px 22px 6px}
+.moon{flex:none;width:92px;height:92px}
+.moon .dark{fill:rgba(255,255,255,.18)} .moon .lit{fill:#fff}
+.moon .ring{fill:none;stroke:rgba(255,255,255,.45);stroke-width:1}
+.hero-text{min-width:0}
+.eyebrow{margin:0;font-size:.85rem;letter-spacing:.14em;font-weight:500;opacity:.92}
+.big{margin:2px 0 4px;font-family:var(--f-display);font-size:2.4rem;line-height:1.1;font-weight:700}
+.big b{font-family:var(--f-num);font-weight:500;font-size:2.7rem;margin:0 .12em}
+.sub{margin:0;font-size:.8rem;opacity:.88}
+.hero-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 22px 0;font-size:.8rem}
+.chip{background:rgba(255,255,255,.2);border-radius:999px;padding:4px 11px;white-space:nowrap}
+.wave{display:block;width:100%;height:26px;margin-top:6px;color:#fff}
+.week{display:grid;grid-template-columns:28px repeat(7,1fr) 28px;align-items:center;padding:0 6px 16px}
+.week .arrow{height:44px;display:grid;place-items:center;opacity:.8;font-size:1.1rem}
+.wd{display:flex;flex-direction:column;align-items:center;gap:4px;padding:2px 0}
+.wd .w{font-size:.68rem;opacity:.8}
+.wd .d{width:2.15rem;height:2.15rem;border-radius:50%;display:grid;place-items:center;font-family:var(--f-num);font-size:.85rem;transition:transform .2s}
+.wd.per .d{background:rgba(255,255,255,.3)}
+.wd.pre .d{border:1.5px dashed rgba(255,255,255,.7)}
+.wd.today .d{box-shadow:inset 0 0 0 1.5px #fff}
+.wd.sel .d{background:#fff;color:var(--ph);font-weight:500;transform:scale(1.12)}
+.wd .dot{width:4px;height:4px;border-radius:50%;background:#fff;opacity:0}
+.wd.has .dot{opacity:.95}
+
+/* quick log */
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:13px 4px 11px;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.tile .t{font-size:.78rem;font-weight:700;white-space:nowrap}
+.tile svg{width:30px;height:30px}
+.tile .v{font-size:.75rem;color:var(--muted)}
+.tile.on{border-color:color-mix(in oklab,var(--ph) 45%,var(--line))}
+.tile.on .v{color:var(--ph);font-weight:700}
+.start-btn{align-self:center;border:1.5px solid var(--ph);color:var(--ph);border-radius:999px;padding:8px 18px;font-size:.88rem;font-weight:700;background:var(--surface)}
+.start-btn.undo{border-style:dashed;color:var(--muted);border-color:var(--line)}
+
+/* panels */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:6px 18px 14px}
+.panel h2{margin:12px 0 4px;font-family:var(--f-display);font-size:1.1rem}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;padding:13px 0;border-bottom:1px solid var(--line);text-align:left}
+.row .k{font-weight:500;font-size:.92rem}
+.row .val{color:var(--muted);font-size:.88rem}
+.row .val.set{color:var(--ph);font-weight:700}
+.note-label{display:block;font-weight:500;font-size:.92rem;padding-top:13px}
+textarea{width:100%;box-sizing:border-box;margin-top:8px;min-height:72px;resize:vertical;border:1px solid var(--line);border-radius:14px;
+  background:var(--soft);color:var(--fg);font:inherit;font-size:.9rem;padding:10px 12px}
+.hint{font-size:.78rem;color:var(--muted);margin:8px 0 0}
+
+/* month */
+.mhead{display:flex;align-items:center;justify-content:space-between;padding:10px 0 6px}
+.mhead h2{margin:0}
+.mhead button{width:36px;height:36px;border-radius:50%;font-size:1.1rem;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px 0;text-align:center}
+.grid .h{font-size:.72rem;color:var(--muted);padding:4px 0}
+.cell{display:flex;flex-direction:column;align-items:center;gap:2px;padding:2px 0}
+.cell .d{width:2.2rem;height:2.2rem;border-radius:50%;display:grid;place-items:center;font-family:var(--f-num);font-size:.85rem}
+.cell.per .d{background:var(--c-men);color:#fff}
+.cell.pre .d{background:color-mix(in oklab,var(--c-pre) 22%,transparent);color:var(--fg);border:1.5px dashed var(--c-pre)}
+.cell.ovu .d{background:color-mix(in oklab,var(--c-ovu) 16%,transparent)}
+.cell.today .d{box-shadow:0 0 0 2px var(--fg)}
+.cell.sel .d{outline:2px solid var(--ph);outline-offset:2px}
+.cell .dot{width:4px;height:4px;border-radius:50%;background:var(--muted);opacity:0}
+.cell.has .dot{opacity:1}
+.cell.love .dot{background:var(--c-ovu);width:6px;height:6px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.75rem;color:var(--muted);padding-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+
+/* year */
+.years{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.ym{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px;text-align:left}
+.ym h3{margin:0 0 6px;font-size:.85rem;font-family:var(--f-display)}
+.mini{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.mini span{aspect-ratio:1;border-radius:50%;font-size:.55rem;display:grid;place-items:center;color:var(--muted);max-width:100%}
+.mini span.per{background:var(--c-men);color:#fff}
+.mini span.pre{background:color-mix(in oklab,var(--c-pre) 30%,transparent);color:var(--fg)}
+.mini span.today{box-shadow:inset 0 0 0 1px var(--fg);color:var(--fg)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:10px 12px}
+.stat .k{font-size:.72rem;color:var(--muted)}
+.stat .n{font-family:var(--f-num);font-size:1.4rem}
+.stat .n small{font-family:var(--f-body);font-size:.75rem;color:var(--muted);margin-left:2px}
+
+/* settings */
+.set-group{display:flex;flex-direction:column;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.set-group:last-child{border-bottom:0}
+.set-group .k{font-weight:700;font-size:.92rem}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{border:1.5px solid var(--line);border-radius:999px;padding:6px 14px;font-size:.85rem;display:flex;align-items:center;gap:8px}
+.opt[aria-pressed="true"]{border-color:var(--ph);color:var(--ph);font-weight:700}
+.sw{display:flex}.sw i{width:12px;height:12px;border-radius:50%;margin-left:-3px;border:1.5px solid var(--surface)}
+.field{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:.9rem}
+.field input[type=number]{width:72px;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--fg);padding:6px 8px;font-family:var(--f-num);text-align:center}
+.danger{color:var(--c-late);font-weight:700;font-size:.88rem;padding:6px 0;text-align:left}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.85rem}
+.confirm button{border-radius:999px;padding:6px 14px;border:1px solid var(--line)}
+.confirm .yes{background:var(--c-late);color:#fff;border-color:transparent}
+
+/* sheet */
+.backdrop{position:fixed;inset:0;background:rgba(20,10,25,.4);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--surface);border-radius:24px 24px 0 0;
+  padding:18px max(20px,env(safe-area-inset-right,0px)) calc(22px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));
+  max-width:460px;margin:0 auto;box-shadow:0 -10px 40px -20px rgba(0,0,0,.5)}
+.sheet h3{margin:0 0 4px;font-family:var(--f-display);font-size:1.15rem}
+.sheet p{margin:0 0 14px;color:var(--muted);font-size:.82rem}
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}
+.choices button{border:1.5px solid var(--line);border-radius:16px;padding:12px 6px;font-size:.9rem}
+.choices button[aria-pressed="true"]{background:var(--ph);border-color:var(--ph);color:#fff;font-weight:700}
+.inp{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;background:var(--soft);color:var(--fg);padding:10px 12px;font:inherit;font-size:.92rem}
+.row2{display:flex;gap:8px;align-items:center}.row2 .inp{flex:1;min-width:0}
+.code-box{display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--soft);border-radius:14px;padding:10px 14px}
+.code-box .num{font-size:1.6rem;letter-spacing:.22em;color:var(--ph)}
+.code-box button{color:var(--ph);font-weight:700}
+.err{color:var(--c-late)!important}
+.ok{color:var(--c-fol)}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block;margin-right:6px}
+.sync-dot.on{background:#3FA676}.sync-dot.bad{background:var(--c-late)}
+.pv-title{margin:0;font-family:var(--f-display);font-size:1.05rem;color:var(--muted)}
+.tip{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:14px 16px;font-size:.92rem;line-height:1.6}
+.tip b{color:var(--ph)}
+.empty{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:24px 18px;text-align:center;color:var(--muted);font-size:.9rem}
+.refresh{align-self:center;font-size:.82rem;color:var(--muted);padding:6px 12px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="backdrop" id="backdrop" hidden data-act="close"></div>
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheet-title"></div>
+
+<script>
+// ===== Supabase 設定：填入「插單」專案的 Project URL 與 anon public key =====
+// Supabase → Project Settings → API（或 Data API）
+const SUPABASE_URL='https://xdymhrblfpwrnertsbre.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_asQ08z3RSLL3101tZp5lEg_kekC7vgc';
+// =========================================================================
+const sb=(SUPABASE_URL&&SUPABASE_ANON_KEY&&window.supabase)
+  ?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,storageKey:'lunaria-auth'}}):null;
+const KEY='lunaria.v1';
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parse=s=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const add=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return ymd(d)};
+const diff=(a,b)=>Math.round((parse(a)-parse(b))/864e5);
+const md=s=>{const d=parse(s);return `${d.getMonth()+1}/${d.getDate()}`};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const WK='日一二三四五六';
+const TODAY=ymd(new Date());
+
+const PALETTES={
+  tide:{name:'潮汐',men:'#E0566F',fol:'#3B88C4',ovu:'#8466CC',lut:'#A87B1F',pre:'#E27D93',late:'#A9566A'},
+  moon:{name:'月光',men:'#B5627A',fol:'#5E86AB',ovu:'#8678B0',lut:'#8E7D4C',pre:'#C98FA0',late:'#8E5A69'},
+  coral:{name:'珊瑚',men:'#F0504F',fol:'#1D9AA8',ovu:'#9A5CF0',lut:'#C9821E',pre:'#F27C8F',late:'#B8485A'}
+};
+const FIELDS={
+  flow:{t:'月經量',q:'今天的出血量？',o:['無','少','中','多']},
+  other:{t:'其他出血',q:'非經期的出血或點狀出血',o:['無','點狀','少量','較多']},
+  discharge:{t:'分泌物',q:'今天分泌物的狀態',o:['無','乾燥','黏稠','乳狀','蛋清狀']},
+  intimacy:{t:'親密關係',q:'今天的親密關係（只存在你的裝置上）',o:['無','有防護','無防護']}
+};
+
+function seed(){
+  const starts=[0,29,58,87].map(k=>add(TODAY,-3-k));
+  const logs={};
+  ['中','多','中'].forEach((f,i)=>logs[add(TODAY,-3+i)]={flow:f});
+  logs[add(TODAY,-16)]={discharge:'蛋清狀',note:'範例：精神很好，有去散步'};
+  logs[add(TODAY,-24)]={other:'點狀'};
+  return {starts,logs,periodLen:5,cycleMode:'auto',cycleManual:28,palette:'tide',font:'m',
+    blocks:{week:true,quick:true,detail:true},sample:true,
+    name:'',share:{phase:true,flow:false,intimacy:false,details:false},dirty:{logs:{},starts:{},profile:0}};
+}
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
+if(!S||!Array.isArray(S.starts))S=seed();
+S={...seed(),...S,blocks:{...seed().blocks,...(S.blocks||{})},share:{...seed().share,...(S.share||{})},dirty:{logs:{},starts:{},profile:0,...(S.dirty||{})}};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+const UI={view:'today',sel:TODAY,cursor:TODAY.slice(0,7),sheet:null,sheetP:false,confirm:false,confirmUnlink:false};
+const SYNC={user:null,status:'',bad:false,err:'',msg:'',link:null,partner:null,invite:null,lastPull:0};
+const SHARE=[['phase','週期階段與預測'],['flow','月經量'],['intimacy','親密關係（對方也能記錄）'],['details','分泌物、其他出血、備註']];
+const TIPS={men:'熱飲、暖暖包、多分擔一點家事，都會很有幫助。',fol:'精神通常比較好，適合安排約會或出遊。',
+  ovu:'若有避孕需求，這幾天要特別留意。',lut:'可能比較容易累或情緒起伏，多一點耐心和陪伴。',
+  pre:'可以先備好常用的生理用品和暖暖包。',late:'對方可能會有點在意，溫和地關心就好。',none:'對方還沒有週期紀錄。'};
+
+// ---------- 同步 ----------
+function setStatus(t,bad){SYNC.status=t;SYNC.bad=!!bad;const el=document.getElementById('sync-status');if(el)el.textContent=t;
+  const d=document.querySelector('.sync-dot');if(d)d.className='sync-dot '+(bad?'bad':'on')}
+function dirtyLog(day){if(S.sample)return;S.dirty.logs[day]=1;save();flushSoon()}
+function dirtyStart(day){if(S.sample)return;S.dirty.starts[day]=1;save();flushSoon()}
+function dirtyProfile(){S.dirty.profile=1;save();flushSoon()}
+let flushT,flushing=false;
+function flushSoon(){clearTimeout(flushT);flushT=setTimeout(flush,700)}
+async function flush(){
+  if(!sb||!SYNC.user||S.sample||flushing)return;
+  flushing=true;const uid=SYNC.user.id;
+  try{
+    for(const day of Object.keys(S.dirty.logs)){
+      const l=S.logs[day];let r;
+      if(l&&Object.keys(l).length)r=await sb.from('lunaria_logs').upsert({user_id:uid,day,flow:l.flow||null,other:l.other||null,
+        discharge:l.discharge||null,intimacy:l.intimacy||null,note:l.note||null,updated_at:new Date().toISOString()});
+      else r=await sb.from('lunaria_logs').delete().match({user_id:uid,day});
+      if(r.error)throw r.error;delete S.dirty.logs[day];
+    }
+    for(const day of Object.keys(S.dirty.starts)){
+      const r=S.starts.includes(day)?await sb.from('lunaria_starts').upsert({user_id:uid,day})
+        :await sb.from('lunaria_starts').delete().match({user_id:uid,day});
+      if(r.error)throw r.error;delete S.dirty.starts[day];
+    }
+    if(S.dirty.profile){
+      const r=await sb.from('lunaria_profiles').upsert({user_id:uid,display_name:S.name||'',period_len:S.periodLen,cycle_mode:S.cycleMode,
+        cycle_manual:S.cycleManual,prefs:{palette:S.palette,font:S.font,blocks:S.blocks},share:S.share,updated_at:new Date().toISOString()});
+      if(r.error)throw r.error;S.dirty.profile=0;
+    }
+    save();setStatus('已同步');
+  }catch(e){setStatus('同步失敗，下次開啟會再試',true)}
+  finally{flushing=false}
+}
+async function pull(){
+  const uid=SYNC.user.id;
+  const [p,st,lg]=await Promise.all([
+    sb.from('lunaria_profiles').select('*').eq('user_id',uid).maybeSingle(),
+    sb.from('lunaria_starts').select('day').eq('user_id',uid),
+    sb.from('lunaria_logs').select('*').eq('user_id',uid)]);
+  const err=p.error||st.error||lg.error;if(err)throw err;
+  if(!p.data&&!st.data.length&&!lg.data.length){
+    // 雲端還是空的：把這支手機上的紀錄傳上去（範例資料不上傳）
+    if(!S.sample){S.starts.forEach(d=>S.dirty.starts[d]=1);Object.keys(S.logs).forEach(d=>S.dirty.logs[d]=1)}
+    S.dirty.profile=1;save();return;
+  }
+  const starts=new Set(st.data.map(r=>r.day));
+  for(const d of Object.keys(S.dirty.starts)){if(S.starts.includes(d))starts.add(d);else starts.delete(d)}
+  const logs={};
+  for(const r of lg.data){const l={};for(const f of ['flow','other','discharge','intimacy','note'])if(r[f])l[f]=r[f];if(Object.keys(l).length)logs[r.day]=l}
+  for(const d of Object.keys(S.dirty.logs)){if(S.logs[d])logs[d]=S.logs[d];else delete logs[d]}
+  S.starts=[...starts];S.logs=logs;S.sample=false;
+  if(p.data&&!S.dirty.profile){const x=p.data,pr=x.prefs||{};
+    Object.assign(S,{name:x.display_name||'',periodLen:x.period_len,cycleMode:x.cycle_mode,cycleManual:x.cycle_manual,
+      share:{...seed().share,...(x.share||{})},palette:pr.palette||S.palette,font:pr.font||S.font,blocks:{...S.blocks,...(pr.blocks||{})}});}
+  save();
+}
+async function loadLink(){
+  const {data,error}=await sb.rpc('lunaria_link_info');if(error)throw error;
+  SYNC.link=data||{};
+  if(SYNC.link.as_partner){const r=await sb.rpc('lunaria_partner_view');if(!r.error)SYNC.partner=r.data}else SYNC.partner=null;
+}
+async function syncAll(){
+  if(!sb||!SYNC.user)return;
+  setStatus('同步中…');
+  try{await flush();await pull();await flush();await loadLink();SYNC.lastPull=Date.now();setStatus('已同步')}
+  catch(e){setStatus('同步失敗：'+(e.message||'請檢查網路'),true)}
+  render();
+}
+function initAuth(){
+  if(!sb)return;
+  sb.auth.onAuthStateChange((_e,session)=>{
+    const was=SYNC.user?.id;SYNC.user=session?.user||null;
+    if(SYNC.user&&SYNC.user.id!==was){SYNC.err='';syncAll()}
+    if(!SYNC.user){SYNC.link=null;SYNC.partner=null;SYNC.invite=null;if(UI.view==='partner')UI.view='today'}
+    render();
+  });
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&SYNC.user&&Date.now()-SYNC.lastPull>30000)syncAll()});
+}
+async function act(fn){try{SYNC.err='';SYNC.msg='';await fn()}catch(e){SYNC.err=e.message||String(e)}render()}
+
+function sorted(){return [...S.starts].sort()}
+function cycleLen(){
+  if(S.cycleMode==='manual')return Math.min(45,Math.max(20,+S.cycleManual||28));
+  const st=sorted(),g=[];
+  for(let i=1;i<st.length;i++){const d=diff(st[i],st[i-1]);if(d>=20&&d<=45)g.push(d)}
+  const r=g.slice(-6);return r.length?Math.round(r.reduce((a,b)=>a+b,0)/r.length):28;
+}
+function lastStartOn(date){let s=null;for(const x of sorted()){if(x<=date)s=x;else break}return s}
+function info(date){
+  const L=cycleLen(),P=S.periodLen,ov=L-14,s=lastStartOn(date);
+  if(!s)return{key:'none',label:'尚無紀錄',n:null,sub:'在下方按「這天經期開始」',d:0,p:0};
+  let d=diff(date,s)+1,base=s,predicted=false;
+  if(d>L){
+    if(date>TODAY){const k=Math.floor((d-1)/L);base=add(s,k*L);d-=k*L;predicted=true}
+    else return{key:'late',label:'經期延遲',n:d-L,sub:`預計 ${md(add(s,L))} 開始 · 週期第 ${d} 天`,d,p:.99};
+  }
+  const tail=predicted?`預測 · 週期第 ${d} 天`:`上次經期 ${md(s)} 開始 · 週期第 ${d} 天`;
+  let r;
+  if(d<=P)r=predicted?{key:'pre',label:'預計經期',n:d,sub:`${md(base)} – ${md(add(base,P-1))}`}
+                     :{key:'men',label:'生理期',n:d,sub:`本次經期 ${md(s)} 開始`};
+  else if(d<ov-1)r={key:'fol',label:'濾泡期',n:d-P,sub:tail};
+  else if(d<=ov+1)r={key:'ovu',label:'排卵期',n:d-(ov-2),sub:tail};
+  else r={key:'lut',label:'黃體期',n:d-(ov+1),sub:tail};
+  return{...r,d,p:(d-1)/L,predicted};
+}
+function isPeriod(date){
+  const f=S.logs[date]?.flow;if(f&&f!=='無')return true;
+  return S.starts.some(s=>{const g=diff(date,s);return g>=0&&g<S.periodLen});
+}
+function dayClass(date){
+  const c=[];
+  if(isPeriod(date))c.push('per');
+  else{const i=info(date);if(i.key==='pre')c.push('pre');else if(i.key==='ovu')c.push('ovu')}
+  if(date===TODAY)c.push('today');
+  if(date===UI.sel)c.push('sel');
+  const l=S.logs[date];if(l&&Object.values(l).some(v=>v&&v!=='無'))c.push('has');
+  if(val(date,'intimacy'))c.push('love');
+  return c.join(' ');
+}
+
+function moonSVG(p){
+  const r=34,c=40,k=Math.cos(2*Math.PI*p),rx=Math.abs(k)*r,wax=p<.5;
+  let path='';
+  if(p>.004&&p<.996){
+    const outer=wax?1:0,term=wax?(k>0?0:1):(k>0?1:0);
+    path=`<path class="lit" d="M${c} ${c-r} A${r} ${r} 0 0 ${outer} ${c} ${c+r} A${rx.toFixed(2)} ${r} 0 0 ${term} ${c} ${c-r}Z"/>`;
+  }
+  return `<svg class="moon" viewBox="0 0 80 80" aria-hidden="true"><circle class="dark" cx="40" cy="40" r="${r}"/>${path}<circle class="ring" cx="40" cy="40" r="${r}"/></svg>`;
+}
+const ICON={
+  flow:(lv)=>`<svg viewBox="0 0 30 30" aria-hidden="true"><defs><clipPath id="dc"><path d="M15 3C15 3 6 13.5 6 19a9 9 0 0 0 18 0C24 13.5 15 3 15 3Z"/></clipPath></defs>
+    <path d="M15 3C15 3 6 13.5 6 19a9 9 0 0 0 18 0C24 13.5 15 3 15 3Z" fill="none" stroke="var(--ph)" stroke-width="1.6"/>
+    <rect x="0" y="${28-lv*7.5}" width="30" height="30" fill="var(--ph)" clip-path="url(#dc)" opacity=".85"/></svg>`,
+  other:(on)=>`<svg viewBox="0 0 30 30" aria-hidden="true">${[[9,10],[19,8],[14,17],[8,22],[21,20]].map(([x,y],i)=>`<circle cx="${x}" cy="${y}" r="${i%2?2.4:3}" fill="${on?'var(--ph)':'none'}" stroke="var(--ph)" stroke-width="1.4"/>`).join('')}</svg>`,
+  discharge:(on)=>`<svg viewBox="0 0 30 30" aria-hidden="true" fill="none" stroke="var(--ph)" stroke-width="1.6" stroke-linecap="round">
+    <path d="M4 11c3.7-3 7.3 3 11 0s7.3-3 11 0"/><path d="M4 17c3.7-3 7.3 3 11 0s7.3-3 11 0" ${on?'':'opacity=".45"'}/><path d="M4 23c3.7-3 7.3 3 11 0s7.3-3 11 0" ${on?'':'opacity=".2"'}/></svg>`,
+  intimacy:(on)=>`<svg viewBox="0 0 30 30" aria-hidden="true"><path d="M12 24s-8-5-8-10.7a4.4 4.4 0 0 1 8-2.6 4.4 4.4 0 0 1 8 2.6C20 19 12 24 12 24Z" fill="${on?'var(--ph)':'none'}" stroke="var(--ph)" stroke-width="1.5"/><path d="M19.5 21.5c2.6-2 6.5-5 6.5-8.6a3.6 3.6 0 0 0-6.4-2.2" fill="none" stroke="var(--ph)" stroke-width="1.5" stroke-linecap="round" opacity=".6"/></svg>`
+};
+function val(date,f){const v=S.logs[date]?.[f];return v&&v!=='無'?v:null}
+
+function withPartner(fn){
+  const P=SYNC.partner,saved=S;
+  S={...S,starts:P.starts||[],logs:P.logs||{},periodLen:P.period_len||5,cycleMode:P.cycle_mode||'auto',cycleManual:P.cycle_manual||28,blocks:{...S.blocks,week:true}};
+  try{return fn()}finally{S=saved}
+}
+function partnerView(){
+  const P=SYNC.partner;
+  if(!P)return `<div class="empty">讀取中…</div>`;
+  const name=esc(P.name);let html=`<p class="pv-title">${name} 的月汐</p>`;
+  if(!P.share.phase)html+=`<div class="empty">${name} 目前沒有分享週期狀態。</div>`;
+  else html+=withPartner(()=>{
+    const i=info(UI.sel),l=P.logs[UI.sel]||{},rows=[];
+    if(P.share.flow&&l.flow)rows.push(['月經量',l.flow]);
+    if(P.share.details){if(l.other)rows.push(['其他出血',l.other]);if(l.discharge)rows.push(['分泌物',l.discharge]);if(l.note)rows.push(['備註',l.note])}
+    return hero()+`<div class="tip"><b>${i.label}</b>　${TIPS[i.key]||''}</div>`
+      +(rows.length?`<section class="panel"><h2>${md(UI.sel)} 的紀錄</h2>${rows.map(([k,v])=>`<div class="row"><span class="k">${k}</span><span class="val set">${esc(v)}</span></div>`).join('')}</section>`:'');
+  });
+  if(P.share.intimacy){const v=P.logs[UI.sel]?.intimacy;
+    html+=`<div class="quick" style="grid-template-columns:1fr"><button class="tile ${v?'on':''}" data-act="plog"><span class="t">親密關係 · ${md(UI.sel)}</span>${ICON.intimacy(!!v)}<span class="v">${v||'＋ 記錄'}</span></button></div>`}
+  return html+`<button class="refresh" data-act="prefresh">↻ 重新整理</button>`;
+}
+function accountSection(){
+  if(!sb)return `<div class="set-group"><span class="k">同步與伴侶</span><p class="hint" style="margin:0">還沒接上 Supabase。請在 index.html 開頭填入 SUPABASE_URL 和 SUPABASE_ANON_KEY。</p></div>`;
+  const note=(SYNC.err?`<p class="hint err" style="margin:0">${esc(SYNC.err)}</p>`:'')+(SYNC.msg?`<p class="hint ok" style="margin:0">${esc(SYNC.msg)}</p>`:'');
+  if(!SYNC.user)return `<div class="set-group"><span class="k">登入以同步、連動伴侶</span>
+    <input id="em" class="inp" type="email" autocomplete="email" placeholder="Email">
+    <input id="pw" class="inp" type="password" autocomplete="current-password" placeholder="密碼（至少 6 碼）">
+    <div class="opts"><button class="opt" aria-pressed="true" data-act="signin">登入</button><button class="opt" data-act="signup">註冊新帳號</button></div>${note}</div>`;
+  const L=SYNC.link||{};
+  const shareOpts=`<div class="opts">${SHARE.map(([k,t])=>`<button class="opt" data-act="share" data-v="${k}" aria-pressed="${!!S.share[k]}">${S.share[k]?'✓ ':''}${t}</button>`).join('')}</div>`;
+  const unlink=UI.confirmUnlink?`<div class="confirm">確定解除連動？<button class="yes" data-act="unlink">解除</button><button data-act="nounlink">取消</button></div>`:`<button class="danger" data-act="askunlink">解除連動</button>`;
+  let mine;
+  if(L.as_owner)mine=`<p class="hint" style="margin:0">已和 <b>${esc(L.as_owner.partner_name)}</b> 連動。對方能看到：</p>${shareOpts}${unlink}`;
+  else mine=`<p class="hint" style="margin:0">先選好要分享的項目，再產生邀請碼傳給伴侶（24 小時內有效）。</p>${shareOpts}
+    ${SYNC.invite?`<div class="code-box"><span class="num">${SYNC.invite}</span><button data-act="copycode">複製</button></div>`:`<button class="opt" data-act="invite" style="align-self:flex-start">產生邀請碼</button>`}`;
+  const theirs=L.as_partner?`<p class="hint" style="margin:0">你正在查看 <b>${esc(L.as_partner.owner_name)}</b> 的月汐（上方「伴侶」分頁）。</p>${L.as_owner?'':unlink}`
+    :`<label class="hint" style="margin:0" for="code">伴侶給了你邀請碼？在這裡輸入：</label><div class="row2"><input id="code" class="inp num" maxlength="6" autocapitalize="characters" placeholder="例如 7F3A9C"><button class="opt" data-act="accept">連動</button></div>`;
+  return `<div class="set-group"><span class="k">帳號與同步</span>
+    <p class="hint" style="margin:0"><span class="sync-dot ${SYNC.bad?'bad':'on'}"></span>${esc(SYNC.user.email)} · <span id="sync-status">${esc(SYNC.status)}</span></p>
+    <label class="field" for="dname">伴侶看到的名字<input id="dname" class="inp" style="width:9rem" maxlength="20" value="${esc(S.name)}" placeholder="暱稱"></label>
+    <button class="danger" data-act="signout" style="color:var(--muted)">登出</button></div>
+  <div class="set-group"><span class="k">伴侶連動</span>${mine}${theirs}${note}</div>`;
+}
+function applyTheme(){
+  const pal=PALETTES[S.palette]||PALETTES.tide,root=document.documentElement;
+  for(const k of ['men','fol','ovu','lut','pre','late'])root.style.setProperty('--c-'+k,pal[k]);
+  const key=UI.view==='today'?info(UI.sel).key:(UI.view==='partner'&&SYNC.partner?.share?.phase)?withPartner(()=>info(UI.sel).key):'men';
+  root.style.setProperty('--ph',`var(--c-${key})`);
+  root.classList.remove('fs-s','fs-l');if(S.font!=='m')root.classList.add('fs-'+S.font);
+}
+
+function hero(){
+  const i=info(UI.sel),L=cycleLen(),d=parse(UI.sel);
+  const ls=lastStartOn(TODAY);let chip='';
+  if(ls){const n=diff(add(ls,L),TODAY),ti=info(TODAY);
+    chip=ti.key==='men'?`經期第 ${ti.n} 天`:n>0?`距離下次經期 ${n} 天`:`已延遲 ${-n} 天`;}
+  const days=[];for(let k=-3;k<=3;k++){const x=add(UI.sel,k);days.push(x)}
+  return `<section class="hero" aria-label="週期狀態">
+    <div class="hero-main">${moonSVG(i.p)}
+      <div class="hero-text"><p class="eyebrow">${i.label}</p>
+        <p class="big">${i.n!=null?`第<b>${i.n}</b>天`:'—'}</p><p class="sub">${esc(i.sub)}</p></div></div>
+    <div class="hero-meta"><span class="num">${d.getMonth()+1}月${d.getDate()}日 週${WK[d.getDay()]}${UI.sel===TODAY?' · 今天':''}</span>${chip?`<span class="chip">${chip}</span>`:''}</div>
+    ${S.blocks.week?`<svg class="wave" viewBox="0 0 400 26" preserveAspectRatio="none" aria-hidden="true"><path d="M0 14C50 2 100 26 150 14S250 2 300 14 380 22 400 12" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="1.5"/></svg>
+    <div class="week"><button class="arrow" data-act="shift" data-n="-7" aria-label="上一週">‹</button>
+      ${days.map(x=>{const dd=parse(x);return `<button class="wd ${dayClass(x)}" data-act="sel" data-d="${x}" aria-label="${md(x)}"><span class="w">${WK[dd.getDay()]}</span><span class="d">${dd.getDate()}</span><span class="dot"></span></button>`}).join('')}
+      <button class="arrow" data-act="shift" data-n="7" aria-label="下一週">›</button></div>`:'<div style="height:18px"></div>'}
+  </section>`;
+}
+function quick(){
+  const fl=val(UI.sel,'flow'),lv={'少':1,'中':2,'多':3}[fl]||0,ot=val(UI.sel,'other'),dc=val(UI.sel,'discharge'),it=val(UI.sel,'intimacy');
+  const isStart=S.starts.includes(UI.sel);
+  return `<div class="quick">
+    <button class="tile ${fl?'on':''}" data-act="log" data-f="flow"><span class="t">月經量</span>${ICON.flow(lv)}<span class="v">${fl||'＋ 記錄'}</span></button>
+    <button class="tile ${ot?'on':''}" data-act="log" data-f="other"><span class="t">其他出血</span>${ICON.other(!!ot)}<span class="v">${ot||'＋ 記錄'}</span></button>
+    <button class="tile ${dc?'on':''}" data-act="log" data-f="discharge"><span class="t">分泌物</span>${ICON.discharge(!!dc)}<span class="v">${dc||'＋ 記錄'}</span></button>
+    <button class="tile ${it?'on':''}" data-act="log" data-f="intimacy"><span class="t">親密關係</span>${ICON.intimacy(!!it)}<span class="v">${it||'＋ 記錄'}</span></button>
+  </div>
+  <button class="start-btn ${isStart?'undo':''}" data-act="toggleStart">${isStart?'取消這天的經期開始':'這天經期開始'}</button>`;
+}
+function detail(){
+  const d=parse(UI.sel),l=S.logs[UI.sel]||{};
+  return `<section class="panel" aria-label="當日明細"><h2>${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日</h2>
+    ${Object.entries(FIELDS).map(([f,F])=>{const v=val(UI.sel,f);return `<button class="row" data-act="log" data-f="${f}"><span class="k">${F.t}</span><span class="val ${v?'set':''}">${v||'＋'}</span></button>`}).join('')}
+    <label class="note-label" for="note">備註</label>
+    <textarea id="note" placeholder="心情、症狀、睡眠……">${esc(l.note)}</textarea></section>`;
+}
+function month(){
+  const [y,m]=UI.cursor.split('-').map(Number),first=new Date(y,m-1,1),n=new Date(y,m,0).getDate();
+  let cells='';for(let i=0;i<first.getDay();i++)cells+='<span></span>';
+  for(let i=1;i<=n;i++){const x=`${y}-${pad(m)}-${pad(i)}`;cells+=`<button class="cell ${dayClass(x)}" data-act="sel" data-d="${x}" aria-label="${m}月${i}日"><span class="d">${i}</span><span class="dot"></span></button>`}
+  return `<section class="panel"><div class="mhead"><button data-act="mshift" data-n="-1" aria-label="上個月">‹</button><h2 class="num">${y}年 ${m}月</h2><button data-act="mshift" data-n="1" aria-label="下個月">›</button></div>
+    <div class="grid">${[...WK].map(w=>`<span class="h">${w}</span>`).join('')}${cells}</div>
+    <div class="legend"><span><i style="background:var(--c-men)"></i>經期</span><span><i style="border:1.5px dashed var(--c-pre)"></i>預計經期</span><span><i style="background:color-mix(in oklab,var(--c-ovu) 30%,transparent)"></i>排卵期</span><span><i style="background:var(--muted);width:5px;height:5px"></i>有紀錄</span><span><i style="background:var(--c-ovu);width:7px;height:7px"></i>親密關係</span></div></section>
+    ${detail()}`;
+}
+function year(){
+  const y=+UI.cursor.slice(0,4),L=cycleLen(),st=sorted();
+  let html=`<div class="mhead"><button data-act="yshift" data-n="-1" aria-label="上一年">‹</button><h2 class="num">${y}年</h2><button data-act="yshift" data-n="1" aria-label="下一年">›</button></div>
+  <div class="stats"><div class="stat"><div class="k">平均週期</div><div class="n">${L}<small>天</small></div></div>
+    <div class="stat"><div class="k">經期天數</div><div class="n">${S.periodLen}<small>天</small></div></div>
+    <div class="stat"><div class="k">已記錄</div><div class="n">${st.length}<small>次</small></div></div></div><div class="years">`;
+  for(let m=1;m<=12;m++){
+    const first=new Date(y,m-1,1),n=new Date(y,m,0).getDate();let c='';
+    for(let i=0;i<first.getDay();i++)c+='<span></span>';
+    for(let i=1;i<=n;i++){const x=`${y}-${pad(m)}-${pad(i)}`;const cl=isPeriod(x)?'per':(x>TODAY&&info(x).key==='pre'?'pre':'');c+=`<span class="${cl} ${x===TODAY?'today':''}">${i}</span>`}
+    html+=`<button class="ym" data-act="gomonth" data-m="${y}-${pad(m)}"><h3>${m}月</h3><div class="mini">${c}</div></button>`;
+  }
+  return html+'</div>';
+}
+function settings(){
+  const L=cycleLen();
+  return `<section class="panel"><h2>外觀與設定</h2>
+  ${accountSection()}
+  <div class="set-group"><span class="k">配色</span><div class="opts">${Object.entries(PALETTES).map(([k,p])=>`<button class="opt" data-act="palette" data-v="${k}" aria-pressed="${S.palette===k}"><span class="sw">${['men','fol','ovu','lut'].map(c=>`<i style="background:${p[c]}"></i>`).join('')}</span>${p.name}</button>`).join('')}</div></div>
+  <div class="set-group"><span class="k">字級</span><div class="opts">${[['s','小'],['m','中'],['l','大']].map(([k,t])=>`<button class="opt" data-act="font" data-v="${k}" aria-pressed="${S.font===k}">${t}</button>`).join('')}</div></div>
+  <div class="set-group"><span class="k">首頁區塊</span><div class="opts">${[['week','週列'],['quick','快速記錄'],['detail','當日明細']].map(([k,t])=>`<button class="opt" data-act="block" data-v="${k}" aria-pressed="${!!S.blocks[k]}">${S.blocks[k]?'✓ ':''}${t}</button>`).join('')}</div></div>
+  <div class="set-group"><span class="k">週期計算</span>
+    <div class="opts"><button class="opt" data-act="cmode" data-v="auto" aria-pressed="${S.cycleMode==='auto'}">依紀錄自動</button><button class="opt" data-act="cmode" data-v="manual" aria-pressed="${S.cycleMode==='manual'}">手動設定</button></div>
+    ${S.cycleMode==='manual'?`<label class="field" for="cyc">週期長度（天）<input id="cyc" type="number" min="20" max="45" value="${S.cycleManual}"></label>`:`<p class="hint">目前依最近 6 次紀錄算出平均 ${L} 天。</p>`}
+    <label class="field" for="plen">經期天數<input id="plen" type="number" min="2" max="10" value="${S.periodLen}"></label></div>
+  <div class="set-group"><span class="k">資料</span>
+    <p class="hint" style="margin:0">${SYNC.user?'登入中，紀錄會自動同步到雲端。':'未登入時，資料只存在這支手機裡。'}</p>
+    ${UI.confirm?`<div class="confirm">確定清空所有紀錄？<button class="yes" data-act="wipe">清空</button><button data-act="noconfirm">取消</button></div>`:`<button class="danger" data-act="askwipe">清空所有紀錄</button>`}</div>
+  </section>`;
+}
+
+function render(){
+  if(UI.view==='partner'&&!SYNC.link?.as_partner)UI.view='today';
+  applyTheme();
+  const v=UI.view;
+  let body='';
+  if(v==='today')body=hero()+(S.blocks.quick?quick():'')+(S.blocks.detail?detail():'');
+  else if(v==='month')body=month();
+  else if(v==='year')body=year();
+  else if(v==='partner')body=partnerView();
+  else body=settings();
+  document.getElementById('app').innerHTML=`
+  <header class="top"><div class="brand">${moonSVG(.3).replace('class="moon"','class="moon" style="width:30px;height:30px;--x:0"')}<span>月汐 <small>LUNARIA</small></span></div>
+    <button class="icon-btn" data-act="${v==='settings'?'tab':'settings'}" data-v="today" aria-label="${v==='settings'?'返回':'設定'}">${v==='settings'
+      ?'<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg>'
+      :'<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>'}</button></header>
+  ${v!=='settings'?`<nav class="tabs" aria-label="檢視">${[['today','今日'],['month','月曆'],['year','年度'],...(SYNC.link?.as_partner?[['partner','伴侶']]:[])].map(([k,t])=>`<button data-act="tab" data-v="${k}" aria-pressed="${v===k}">${t}</button>`).join('')}</nav>`:''}
+  ${S.sample&&v!=='partner'?`<div class="sample"><span>目前顯示的是範例資料，方便你先試操作。</span><button data-act="clearSample">清除範例</button></div>`:''}
+  ${body}`;
+  // brand moon colors
+  const bm=document.querySelector('.brand .moon');if(bm){bm.querySelector('.dark').style.fill='var(--soft)';bm.querySelector('.lit').style.fill='var(--ph)';bm.querySelector('.ring').style.stroke='var(--line)'}
+}
+
+function openSheet(f){
+  const F=FIELDS[f],src=UI.sheetP?(SYNC.partner?.logs||{}):S.logs,cur=src[UI.sel]?.[f]||'無',sh=document.getElementById('sheet');
+  UI.sheet=f;
+  sh.innerHTML=`<h3 id="sheet-title">${F.t} · ${md(UI.sel)}</h3><p>${F.q}</p><div class="choices">${F.o.map(o=>`<button data-act="opt" data-v="${o}" aria-pressed="${cur===o}">${o}</button>`).join('')}</div>`;
+  sh.hidden=false;document.getElementById('backdrop').hidden=false;
+  sh.querySelector('[aria-pressed="true"]')?.focus();
+}
+function closeSheet(){UI.sheet=null;UI.sheetP=false;document.getElementById('sheet').hidden=true;document.getElementById('backdrop').hidden=true}
+function setLog(f,v){
+  const l={...(S.logs[UI.sel]||{})};
+  if(v==='無')delete l[f];else l[f]=v;
+  if(Object.keys(l).length)S.logs[UI.sel]=l;else delete S.logs[UI.sel];
+  if(f==='flow'&&v!=='無'&&!lastPeriodCovers(UI.sel)&&!S.starts.includes(UI.sel)){S.starts.push(UI.sel);dirtyStart(UI.sel)}
+  save();dirtyLog(UI.sel);
+}
+function lastPeriodCovers(date){
+  // previous day was a period day → this is a continuation, not a new start
+  return isPeriodNoLog(add(date,-1))||!!(S.logs[add(date,-1)]?.flow);
+}
+function isPeriodNoLog(date){return S.starts.some(s=>{const g=diff(date,s);return g>=0&&g<S.periodLen})}
+
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-act]');if(!t)return;
+  const a=t.dataset.act,v=t.dataset.v;
+  switch(a){
+    case'tab':UI.view=v;UI.confirm=false;if(v!=='today')UI.cursor=UI.sel.slice(0,7);break;
+    case'settings':UI.view='settings';break;
+    case'sel':UI.sel=t.dataset.d;break;
+    case'shift':UI.sel=add(UI.sel,+t.dataset.n);break;
+    case'mshift':{const[y,m]=UI.cursor.split('-').map(Number);const d=new Date(y,m-1+(+t.dataset.n),1);UI.cursor=`${d.getFullYear()}-${pad(d.getMonth()+1)}`;break}
+    case'yshift':UI.cursor=`${+UI.cursor.slice(0,4)+(+t.dataset.n)}-01`;break;
+    case'gomonth':UI.cursor=t.dataset.m;UI.view='month';break;
+    case'log':openSheet(t.dataset.f);return;
+    case'opt':if(UI.sheetP){const day=UI.sel;closeSheet();act(async()=>{const {error}=await sb.rpc('lunaria_partner_set_intimacy',{p_day:day,p_value:v==='無'?null:v});if(error)throw error;await loadLink()});return}
+      setLog(UI.sheet,v);closeSheet();break;
+    case'close':closeSheet();return;
+    case'toggleStart':{const i=S.starts.indexOf(UI.sel);if(i>=0)S.starts.splice(i,1);else S.starts.push(UI.sel);save();dirtyStart(UI.sel);break}
+    case'palette':S.palette=v;dirtyProfile();break;
+    case'font':S.font=v;dirtyProfile();break;
+    case'block':S.blocks[v]=!S.blocks[v];dirtyProfile();break;
+    case'cmode':S.cycleMode=v;dirtyProfile();break;
+    case'clearSample':S={...seed(),starts:[],logs:{},sample:false,palette:S.palette,font:S.font,blocks:S.blocks,name:S.name,share:S.share,dirty:{logs:{},starts:{},profile:1}};save();syncAll();break;
+    case'askwipe':UI.confirm=true;break;
+    case'noconfirm':UI.confirm=false;break;
+    case'wipe':S.starts.forEach(d=>S.dirty.starts[d]=1);Object.keys(S.logs).forEach(d=>S.dirty.logs[d]=1);S={...S,starts:[],logs:{},sample:false};UI.confirm=false;save();flushSoon();break;
+    case'signin':{const em=document.getElementById('em').value.trim(),pw=document.getElementById('pw').value;
+      act(async()=>{const {error}=await sb.auth.signInWithPassword({email:em,password:pw});if(error)throw new Error(error.message==='Invalid login credentials'?'Email 或密碼不正確':error.message)});return}
+    case'signup':{const em=document.getElementById('em').value.trim(),pw=document.getElementById('pw').value;
+      act(async()=>{const {data,error}=await sb.auth.signUp({email:em,password:pw,options:{emailRedirectTo:location.origin+location.pathname}});if(error)throw error;
+        if(!data.session)SYNC.msg='已寄出確認信。點信裡的連結後，回到這裡登入。'});return}
+    case'signout':act(async()=>{await sb.auth.signOut()});return;
+    case'share':S.share[v]=!S.share[v];dirtyProfile();break;
+    case'invite':act(async()=>{const {data,error}=await sb.rpc('lunaria_create_invite');if(error)throw error;SYNC.invite=data;await flush()});return;
+    case'copycode':navigator.clipboard?.writeText(SYNC.invite).then(()=>{t.textContent='已複製'},()=>{});return;
+    case'accept':{const c=document.getElementById('code').value;
+      act(async()=>{const {data,error}=await sb.rpc('lunaria_accept_invite',{p_code:c});if(error)throw error;SYNC.msg=`已和 ${data} 連動`;await loadLink();UI.view='partner'});return}
+    case'askunlink':UI.confirmUnlink=true;break;
+    case'nounlink':UI.confirmUnlink=false;break;
+    case'unlink':UI.confirmUnlink=false;act(async()=>{const {error}=await sb.rpc('lunaria_unlink');if(error)throw error;SYNC.invite=null;await loadLink()});return;
+    case'plog':UI.sheetP=true;openSheet('intimacy');return;
+    case'prefresh':syncAll();return;
+  }
+  render();
+});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&UI.sheet)closeSheet()});
+document.addEventListener('input',e=>{
+  if(e.target.id==='note'){const l={...(S.logs[UI.sel]||{})};const x=e.target.value;if(x)l.note=x;else delete l.note;
+    if(Object.keys(l).length)S.logs[UI.sel]=l;else delete S.logs[UI.sel];save();dirtyLog(UI.sel);}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='cyc'){S.cycleManual=Math.min(45,Math.max(20,+e.target.value||28));dirtyProfile();render()}
+  if(e.target.id==='plen'){S.periodLen=Math.min(10,Math.max(2,+e.target.value||5));dirtyProfile();render()}
+  if(e.target.id==='dname'){S.name=e.target.value.trim().slice(0,20);dirtyProfile()}
+});
+render();
+initAuth();
+</script>
+<script>if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));</script>
+</body>
+</html>
